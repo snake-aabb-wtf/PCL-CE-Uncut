@@ -1,0 +1,51 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, ARM64]
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: 构建
+        run: |
+          dotnet publish "Plain Craft Launcher 2/Plain Craft Launcher 2.csproj" \
+            -c Release \
+            -p:Platform=${{ matrix.platform }} \
+            -p:DeleteExistingFiles=true \
+            -o "artifact/${{ matrix.platform }}" \
+            --no-self-contained
+
+      - name: 改名
+        run: |
+          set -e
+          ls -l "artifact/${{ matrix.platform }}"
+          mv "artifact/${{ matrix.platform }}/Plain Craft Launcher 2.exe" "PCL_CE_Uncut_${{ matrix.platform }}.exe"
+          ls -l "PCL_CE_Uncut_${{ matrix.platform }}.exe"
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCL_CE_Uncut_${{ matrix.platform }}
+          path: PCL_CE_Uncut_${{ matrix.platform }}.exe
+          archive: false
+          if-no-files-found: error
